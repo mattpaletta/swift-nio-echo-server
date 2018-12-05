@@ -1,0 +1,32 @@
+version: '3'
+services:
+  echo:
+    image: echo-server:latest
+    build:
+      context: .
+      dockerfile: Echo-Dockerfile
+    tty: true
+    expose:
+      - 4567
+    ports:
+      - 4567
+  client:
+    image: echo-client:latest
+    build:
+      context: .
+      dockerfile: Client-Dockerfile
+    tty: true
+    expose: 
+      - 4568
+    ports:
+      - 4568
+  middle:
+    image: echo-middle:latest
+    build:
+      context: .
+      dockerfile: Middle-Dockerfile
+    tty: true
+    expose: 
+      - 4569
+    ports:
+      - 4569

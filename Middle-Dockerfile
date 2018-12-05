@@ -1,0 +1,9 @@
+FROM mattpaletta/swift-nio:18.04.4.2 as builder
+COPY . /IoTH
+WORKDIR /IoTH
+#RUN export PATH="/root/.swift/usr/bin:$PATH"
+#RUN swift test
+RUN /root/.swift/usr/bin/swift build --build-path /build --target=middle-server
+
+FROM alpine:latest
+COPY --from=builder /build /
