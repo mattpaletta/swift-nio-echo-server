@@ -55,8 +55,22 @@ class BasicClient {
         // We will flush the buffer in the handler asynchronously.
         var buffer = self.channel!.allocator.buffer(capacity: msg.utf8.count)
         buffer.write(string: msg)
-        self.channel!.write(buffer)
+//        self.channel!.write(buffer)
+        let promise: EventLoopPromise<Void> = self.channel!.eventLoop.newPromise()
         
+        let promise2: EventLoopPromise<String> = self.channel!.eventLoop.newPromise()
+        let handler = DependHandler(promise: promise2)
+        
+        let _ = self.channel!.pipeline.add(name: "depends", handler: handler, first: true).then { (_) -> EventLoopFuture<Void> in
+            self.channel!.write(buffer, promise: promise)
+            print("wrote to channel!")
+            return promise.futureResult
+        }
+        
+        promise2.futureResult.map { (str) -> (String) in
+            print(str)
+            return str
+        }
 //        let _ = try self.channel!.writeAndFlush(msg)
         
 //        do {

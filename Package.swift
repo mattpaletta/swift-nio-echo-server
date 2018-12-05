@@ -15,11 +15,15 @@ let targets: [PackageDescription.Target] = [
         .target(
             name: "echo-server",
             dependencies: ["NIOHTTP1"]),
+        .target(
+            name: "http-server",
+            dependencies: ["NIOHTTP1"]),
 ]
 
 let package = Package(
     name: "swift-nio-echo-server",
     products: [
+        .executable(name: "http-server", targets: ["http-server"]),
         .executable(name: "basic-client", targets: ["basic-client"]),
         .executable(name: "middle-server", targets: ["middle-server"]),
         .executable(name: "echo-server", targets: ["echo-server"]),

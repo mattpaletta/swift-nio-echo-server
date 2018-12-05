@@ -52,12 +52,44 @@ class ClientOutHandler: ChannelOutboundHandler {
     }
 }
 
-class ClientInHandler: ChannelInboundHandler {
-    typealias InboundIn = ByteBuffer
-    typealias OutboundOut = ByteBuffer
-    typealias OutboundIn = ByteBuffer
+class DependHandler: ChannelInboundHandler {
+    typealias InboundIn = NIOAny
+    typealias OutboundIn = String
     
+    var promise: EventLoopPromise<String>
+    
+    init(promise: EventLoopPromise<String>) {
+        self.promise = promise
+    }
+    
+    func channelRead(ctx: ChannelHandlerContext, data: String) {
+        print("Succeed Promise!")
+        self.promise.succeed(result: data)
+//        ctx.writeAndFlush(data, promise: self.promise)
+    }
+}
+
+class ClientInHandler: ChannelInboundHandler {
+    typealias InboundOut = String
+    typealias InboundIn = ByteBuffer
+//    typealias OutboundOut = ByteBuffer
+    typealias OutboundIn = String
+    
+    
+    var promise: EventLoopPromise<String>?
     private var numBytes = 0
+    
+    convenience init() {
+        self.init(promise: nil)
+    }
+    
+    init(promise: EventLoopPromise<String>?) {
+        self.promise = promise
+    }
+    
+    func add_promise(promise: EventLoopPromise<String>) {
+        self.promise = promise
+    }
     
     // channel is connected, send a message
     func channelActive(ctx: ChannelHandlerContext) {
@@ -72,12 +104,12 @@ class ClientInHandler: ChannelInboundHandler {
         ctx.flush()
     }
     
-    func channelRead(ctx: ChannelHandlerContext, data: String) {
-        print("Got message: \(data)")
-        var buffer = ctx.channel.allocator.buffer(capacity: data.utf8.count)
-        buffer.write(string: data)
-        ctx.writeAndFlush(wrapOutboundOut(buffer), promise: nil)
-    }
+//    func channelRead(ctx: ChannelHandlerContext, data: String) {
+//        print("Got message: \(data)")
+//        var buffer = ctx.channel.allocator.buffer(capacity: data.utf8.count)
+//        buffer.write(string: data)
+//        ctx.writeAndFlush(wrapOutboundOut(buffer), promise: nil)
+//    }
     
     func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
         var buffer = unwrapInboundIn(data)
@@ -85,8 +117,20 @@ class ClientInHandler: ChannelInboundHandler {
         if let received = buffer.readString(length: readableBytes) {
             // TODO: Call delegate with message!
             print("Received: \(received)")
+            
+//            ctx.writeAndFlush(data, promise: nil)
+            ctx.fireChannelRead(data)
+            if let pr = self.promise {
+                pr.succeed(result: received)
+//                ctx.writeAndFlush(received, promise: self.promise)
+            }
         }
         
+        print(ctx.channel.pipeline.debugDescription)
+        
+        
+//        ctx.fireChannelRead(data)
+//        ctx.fireChannelReadComplete()
         if numBytes == 0 {
 //            print("nothing left to read, close the channel")
 //            ctx.close(promise: nil)
