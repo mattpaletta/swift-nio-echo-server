@@ -14,11 +14,11 @@ func startup() -> (to: String, port: Int) {
     print("Hello, This is Echo Server Client")
 //    print("Would you like to connect to Echo Middle?[y/n]")
 //    let x = readLine()
-    if x?.lowercased() == "y" || x?.lowercased() == "yes" {
-        return (to: "localhost", port: middle_port)
-    } else {
+//    if x?.lowercased() == "y" || x?.lowercased() == "yes" {
+//        return (to: "localhost", port: middle_port)
+//    } else {
         return (to: "localhost", port: end_port)
-    }
+//    }
 }
 
 func process_echos(client: BasicClient) {
