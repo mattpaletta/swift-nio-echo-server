@@ -52,20 +52,32 @@ class ClientOutHandler: ChannelOutboundHandler {
     }
 }
 
-class DependHandler: ChannelInboundHandler {
-    typealias InboundIn = NIOAny
-    typealias OutboundIn = String
+class DependHandler: ChannelInboundHandler, ChannelOutboundHandler {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundIn = ByteBuffer
+    typealias OutboundOut = ByteBuffer
     
-    var promise: EventLoopPromise<String>
-    
-    init(promise: EventLoopPromise<String>) {
-        self.promise = promise
+    var promise: EventLoopPromise<String>?
+
+    func get_promise() -> EventLoopPromise<String> {
+        return self.promise!
     }
     
-    func channelRead(ctx: ChannelHandlerContext, data: String) {
-        print("Succeed Promise!")
-        self.promise.succeed(result: data)
-//        ctx.writeAndFlush(data, promise: self.promise)
+    // Store the 'read' promise here.
+    func write(ctx: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        print("Storing promise")
+        self.promise = ctx.eventLoop.newPromise()
+        ctx.writeAndFlush(data, promise: promise)
+    }
+    
+    func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
+        var buffer = unwrapInboundIn(data)
+        let readableBytes = buffer.readableBytes
+        if let received = buffer.readString(length: readableBytes) {
+            // TODO: Call delegate with message!
+            print("Received2: \(received)")
+            self.promise?.succeed(result: received)
+        }
     }
 }
 
@@ -117,13 +129,12 @@ class ClientInHandler: ChannelInboundHandler {
         if let received = buffer.readString(length: readableBytes) {
             // TODO: Call delegate with message!
             print("Received: \(received)")
-            
 //            ctx.writeAndFlush(data, promise: nil)
-            ctx.fireChannelRead(data)
-            if let pr = self.promise {
-                pr.succeed(result: received)
-//                ctx.writeAndFlush(received, promise: self.promise)
-            }
+//            ctx.fireChannelRead(data)
+//            if let pr = self.promise {
+//                pr.succeed(result: received)
+////                ctx.writeAndFlush(received, promise: self.promise)
+//            }
         }
         
         print(ctx.channel.pipeline.debugDescription)

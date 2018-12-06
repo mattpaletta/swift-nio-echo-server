@@ -58,19 +58,21 @@ class BasicClient {
 //        self.channel!.write(buffer)
         let promise: EventLoopPromise<Void> = self.channel!.eventLoop.newPromise()
         
-        let promise2: EventLoopPromise<String> = self.channel!.eventLoop.newPromise()
-        let handler = DependHandler(promise: promise2)
+        let handler = DependHandler()
         
         let _ = self.channel!.pipeline.add(name: "depends", handler: handler, first: true).then { (_) -> EventLoopFuture<Void> in
-            self.channel!.write(buffer, promise: promise)
             print("wrote to channel!")
+            self.channel?.write(buffer, promise: promise)
             return promise.futureResult
+        }.then { (v) -> EventLoopFuture<String> in
+                self.channel?.read()
+                return handler.get_promise().futureResult
+        }.map { (str) -> (String) in
+                print("promised: \(str)")
+                return str
         }
+            
         
-        promise2.futureResult.map { (str) -> (String) in
-            print(str)
-            return str
-        }
 //        let _ = try self.channel!.writeAndFlush(msg)
         
 //        do {
