@@ -3,7 +3,8 @@ COPY . /IoTH
 WORKDIR /IoTH
 RUN export PATH="/root/.swift/usr/bin:$PATH"
 # RUN /root/.swift/usr/bin/swift test
-RUN /root/.swift/usr/bin/swift build --build-path /build --target=basic-client
+RUN /root/.swift/usr/bin/swift build
 
-FROM alpine:latest
-COPY --from=builder /build /
+FROM swift:latest
+COPY --from=builder /IoTH/.build/x86_64-unknown-linux/debug/basic-client /build/basic-client
+#ENTRYPOINT ["/build/basic-client"]

@@ -63,10 +63,9 @@ class BasicClient {
             self.channel?.write(buffer, promise: promise)
             return promise.futureResult
         }.then { (v) -> EventLoopFuture<String> in
-                self.channel?.read()
                 return handler.get_promise().futureResult
         }.map { (str) -> (String) in
-                self.channel?.pipeline.remove(name: "depends")
+                let _ = self.channel?.pipeline.remove(name: "depends")
                 print("promised: \(str)")
                 return str
         }

@@ -59,9 +59,26 @@ class DependHandler: ChannelInboundHandler, ChannelOutboundHandler {
     
     // Store the 'read' promise here.
     func write(ctx: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        print("Storing promise")
-        self.promise = ctx.eventLoop.newPromise()
+        print("Not Storing promise")
         ctx.writeAndFlush(data, promise: promise)
+        
+        guard let pr = promise else { return }
+        pr.futureResult.whenComplete {
+            // Trigerring Read!
+            ctx.read()
+            self.promise = ctx.eventLoop.newPromise()
+        }
+    }
+    
+    func write(ctx: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>) {
+        print("Storing promise")
+        
+        ctx.writeAndFlush(data, promise: promise)
+        promise.futureResult.whenComplete {
+            // Trigerring Read!
+            ctx.read()
+            self.promise = ctx.eventLoop.newPromise()
+        }
     }
     
     func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
