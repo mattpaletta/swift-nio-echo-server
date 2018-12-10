@@ -8,10 +8,17 @@
 import Foundation
 import NIO
 
+protocol NetIODelegate: AnyObject {
+    func network(received: String) -> EventLoopFuture<String>
+}
+
 class EchoHandler: ChannelInboundHandler, ChannelOutboundHandler {
     typealias InboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
     typealias OutboundIn = ByteBuffer
+    
+    weak var delegate: NetIODelegate?
+
     
     func channelActive(ctx: ChannelHandlerContext) {
         print("Got Channel!")
@@ -22,9 +29,16 @@ class EchoHandler: ChannelInboundHandler, ChannelOutboundHandler {
         let readableBytes = buffer.readableBytes
         if let received = buffer.readString(length: readableBytes) {
             print(received)
+            
+            let result = self.delegate?.network(received: received)
+            
+            result?.whenSuccess({ (response) in
+                var bufferOut = ctx.channel.allocator.buffer(capacity: response.utf8.count)
+                bufferOut.write(string: response)
+                ctx.writeAndFlush(self.wrapOutboundOut(bufferOut), promise: nil)
+            })
         }
         
-        ctx.write(data, promise: nil)
     }
     
     func write(ctx: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {

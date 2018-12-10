@@ -14,11 +14,13 @@ enum EchoServerError: Error {
     case invalidPort
 }
 
-class EchoServer {
+class EchoServer: NetIODelegate {
     private let group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
     private var host: String?
     private var port: Int?
     private var channel: Channel?
+    
+    var handler = EchoHandler()
     
     private var serverBootstrap: ServerBootstrap {
         return ServerBootstrap(group: group)
@@ -26,7 +28,7 @@ class EchoServer {
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .childChannelInitializer { channel in
                 channel.pipeline.add(handler: BackPressureHandler()).then { v in
-                    channel.pipeline.add(handler: EchoHandler())
+                    channel.pipeline.add(handler: self.handler)
                 }
             }
             .childChannelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
@@ -38,6 +40,23 @@ class EchoServer {
     init(host: String, port: Int) {
         self.host = host
         self.port = port
+        self.handler.delegate = self
+    }
+    
+    func network(received: String) -> EventLoopFuture<String> {
+        let response_promise: EventLoopPromise<String> = self.channel!.eventLoop.newPromise()
+        
+        self.channel?.eventLoop.execute {
+            let result = self.process_response(msg: received)
+            response_promise.succeed(result: result)
+        }
+        
+        return response_promise.futureResult
+    }
+    
+    func process_response(msg: String) -> String {
+        // This could do any arbitrary processing.
+        return msg.uppercased()
     }
     
     func start() throws {
